@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mathsolver",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "env": {
+        "PATH": "/c/Users/USER/node-v20.11.1-win-x64:${env:PATH}"
+      }
+    }
+  ]
+}
