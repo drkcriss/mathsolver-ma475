@@ -4,11 +4,29 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { rsaEncrypt, rsaDecrypt, RSAResult, CharTable } from '@/lib/math/rsa';
 import { ALL_TABLES, getTableById } from '@/lib/data/charTables';
+import { isPrime } from '@/lib/math/gcd';
 import CustomTableBuilder from '@/components/custom-table-builder';
 
+function factorN(n: number): { p: number; q: number } | null {
+  if (n < 4) return null;
+  for (let i = 2; i <= Math.sqrt(n); i++) {
+    if (n % i === 0) {
+      const j = n / i;
+      if (isPrime(i) && isPrime(j) && i !== j) {
+        return { p: i, q: j };
+      }
+    }
+  }
+  return null;
+}
+
+type InputMode = 'pq' | 'key';
+
 export default function EncriptarPage() {
+  const [inputMode, setInputMode] = useState<InputMode>('key');
   const [p, setP] = useState('');
   const [q, setQ] = useState('');
+  const [nVal, setNVal] = useState('');
   const [d, setD] = useState('');
   const [message, setMessage] = useState('');
   const [tableId, setTableId] = useState('standard');
@@ -28,14 +46,35 @@ export default function EncriptarPage() {
     setVerification(null);
     setShowVerification(false);
 
-    const pNum = parseInt(p);
-    const qNum = parseInt(q);
+    let pNum: number, qNum: number;
     const dNum = d.trim() ? parseInt(d) : undefined;
 
-    if (isNaN(pNum) || isNaN(qNum)) {
-      setError('p y q deben ser numeros enteros validos.');
-      return;
+    if (inputMode === 'key') {
+      const nNum = parseInt(nVal);
+      if (isNaN(nNum)) {
+        setError('n debe ser un numero entero valido.');
+        return;
+      }
+      if (!d.trim()) {
+        setError('Ingresa d (clave privada).');
+        return;
+      }
+      const factors = factorN(nNum);
+      if (!factors) {
+        setError(`No se pudo factorizar n = ${nNum} como producto de dos primos distintos.`);
+        return;
+      }
+      pNum = factors.p;
+      qNum = factors.q;
+    } else {
+      pNum = parseInt(p);
+      qNum = parseInt(q);
+      if (isNaN(pNum) || isNaN(qNum)) {
+        setError('p y q deben ser numeros enteros validos.');
+        return;
+      }
     }
+
     if (!message.trim()) {
       setError('Ingresa un mensaje para encriptar.');
       return;
@@ -81,44 +120,104 @@ export default function EncriptarPage() {
 
         {/* Input Form */}
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Primo p
-              </label>
-              <input
-                type="number"
-                value={p}
-                onChange={(e) => setP(e.target.value)}
-                placeholder="Ej: 7"
-                className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Primo q
-              </label>
-              <input
-                type="number"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Ej: 13"
-                className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
-                d (opcional)
-              </label>
-              <input
-                type="number"
-                value={d}
-                onChange={(e) => setD(e.target.value)}
-                placeholder="Auto"
-                className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
+          {/* Input mode toggle */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+              Modo de entrada
+            </label>
+            <div className="flex rounded-xl bg-zinc-100 dark:bg-zinc-800 p-1">
+              <button
+                type="button"
+                onClick={() => setInputMode('key')}
+                className={`flex-1 rounded-lg py-2.5 px-3 text-sm font-medium transition-all min-h-[40px] ${
+                  inputMode === 'key'
+                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'
+                }`}
+              >
+                Clave privada (n, d)
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('pq')}
+                className={`flex-1 rounded-lg py-2.5 px-3 text-sm font-medium transition-all min-h-[40px] ${
+                  inputMode === 'pq'
+                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50'
+                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'
+                }`}
+              >
+                Primos p, q
+              </button>
             </div>
           </div>
+
+          {inputMode === 'key' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  n (modulo)
+                </label>
+                <input
+                  type="number"
+                  value={nVal}
+                  onChange={(e) => setNVal(e.target.value)}
+                  placeholder="Ej: 21"
+                  className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  d (clave privada)
+                </label>
+                <input
+                  type="number"
+                  value={d}
+                  onChange={(e) => setD(e.target.value)}
+                  placeholder="Ej: 5"
+                  className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Primo p
+                </label>
+                <input
+                  type="number"
+                  value={p}
+                  onChange={(e) => setP(e.target.value)}
+                  placeholder="Ej: 7"
+                  className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Primo q
+                </label>
+                <input
+                  type="number"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Ej: 13"
+                  className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  d (opcional)
+                </label>
+                <input
+                  type="number"
+                  value={d}
+                  onChange={(e) => setD(e.target.value)}
+                  placeholder="Auto"
+                  className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Table selector */}
           <div className="mb-4">
