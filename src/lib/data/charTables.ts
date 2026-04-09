@@ -30,6 +30,15 @@ export const PROBLEM4_TABLE = makeTable(
   ]
 );
 
+export const ALPHA_TABLE = makeTable(
+  'Alfabética (A=0...V=21)', 'alpha',
+  [
+    ['A', 0], ['B', 1], ['C', 2], ['D', 3], ['E', 4], ['F', 5], ['G', 6], ['H', 7],
+    ['I', 8], ['J', 9], ['K', 10], ['L', 11], ['M', 12], ['N', 13], ['O', 14], ['P', 15],
+    ['Q', 16], ['R', 17], ['S', 18], ['T', 19], ['U', 20], ['V', 21], [' ', 22],
+  ]
+);
+
 export const LIZ_TABLE = makeTable(
   'Tabla LIZ (A=0, sin G)', 'liz',
   [
@@ -63,7 +72,7 @@ function makeASCIITable(): CharTable {
 
 export const ASCII_TABLE = makeASCIITable();
 
-export const ALL_TABLES: CharTable[] = [STANDARD_TABLE, PROBLEM4_TABLE, LIZ_TABLE, ASCII_TABLE];
+export const ALL_TABLES: CharTable[] = [STANDARD_TABLE, ALPHA_TABLE, PROBLEM4_TABLE, LIZ_TABLE, ASCII_TABLE];
 
 export function getTableById(id: string): CharTable {
   return ALL_TABLES.find(t => t.id === id) ?? STANDARD_TABLE;
