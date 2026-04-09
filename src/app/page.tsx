@@ -43,28 +43,6 @@ const tools = [
       "Genera claves publica y privada, cifra y descifra mensajes con el algoritmo RSA paso a paso.",
   },
   {
-    href: "/afin",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="size-8 text-primary"
-      >
-        <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4" />
-        <path d="M14 2v5h5" />
-        <path d="m3 15 2 2 4-4" />
-      </svg>
-    ),
-    title: "Cifrado Afin",
-    description:
-      "Encripta y desencripta con el cifrado afin C = (a·M + b) mod n, paso a paso.",
-  },
-  {
     href: "/nif",
     icon: (
       <svg
