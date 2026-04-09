@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { rsaDecrypt, RSAResult, RSAKeys } from '@/lib/math/rsa';
+import { rsaDecrypt, RSAResult, RSAKeys, CharTable } from '@/lib/math/rsa';
 import { ALL_TABLES, getTableById } from '@/lib/data/charTables';
 import { isPrime } from '@/lib/math/gcd';
+import CustomTableBuilder from '@/components/custom-table-builder';
 
 function factorN(n: number): { p: number; q: number } | null {
   if (n < 4) return null;
@@ -27,11 +28,13 @@ export default function DesencriptarPage() {
   const [inputMode, setInputMode] = useState<'numbers' | 'text'>('numbers');
   const [tableId, setTableId] = useState('standard');
   const [result, setResult] = useState<RSAResult | null>(null);
+  const [customTable, setCustomTable] = useState<CharTable | null>(null);
   const [factoredInfo, setFactoredInfo] = useState('');
   const [error, setError] = useState('');
 
-  const selectedTable = getTableById(tableId);
+  const selectedTable = tableId === 'custom' && customTable ? customTable : getTableById(tableId);
   const tableEntries = Object.entries(selectedTable.encode).sort((a, b) => a[1] - b[1]);
+  const handleCustomTableChange = useCallback((t: CharTable) => setCustomTable(t), []);
 
   function handleDecrypt() {
     setError('');
@@ -46,7 +49,7 @@ export default function DesencriptarPage() {
       return;
     }
 
-    const table = getTableById(tableId);
+    const table = tableId === 'custom' && customTable ? customTable : getTableById(tableId);
 
     // Parse cipher values
     let cipherValues: number[];
@@ -167,27 +170,34 @@ export default function DesencriptarPage() {
               {ALL_TABLES.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
+              <option value="custom">Personalizada (editable)</option>
             </select>
           </div>
 
           {/* Character table display */}
-          <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wide">
-              Mapeo de caracteres
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {tableEntries.map(([ch, num]) => (
-                <span
-                  key={ch}
-                  className="inline-flex items-center gap-0.5 px-2 py-1 rounded-md bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 text-xs font-mono"
-                >
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">{ch === ' ' ? 'ESP' : ch}</span>
-                  <span className="text-zinc-400">=</span>
-                  <span className="text-zinc-700 dark:text-zinc-300">{num}</span>
-                </span>
-              ))}
+          {tableId === 'custom' ? (
+            <div className="mb-4">
+              <CustomTableBuilder onChange={handleCustomTableChange} />
             </div>
-          </div>
+          ) : (
+            <div className="mb-4 p-3 bg-zinc-50 dark:bg-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-700">
+              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2 uppercase tracking-wide">
+                Mapeo de caracteres
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {tableEntries.map(([ch, num]) => (
+                  <span
+                    key={ch}
+                    className="inline-flex items-center gap-0.5 px-2 py-1 rounded-md bg-white dark:bg-zinc-700 border border-zinc-200 dark:border-zinc-600 text-xs font-mono"
+                  >
+                    <span className="text-blue-600 dark:text-blue-400 font-semibold">{ch === ' ' ? 'ESP' : ch}</span>
+                    <span className="text-zinc-400">=</span>
+                    <span className="text-zinc-700 dark:text-zinc-300">{num}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Input mode toggle */}
           <div className="mb-4">
