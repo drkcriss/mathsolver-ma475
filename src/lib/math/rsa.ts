@@ -35,11 +35,16 @@ export interface RSAResult {
   errors: string[];
 }
 
-export function findSmallestD(phi: number): number {
-  for (let d = 2; d < phi; d++) {
-    if (gcd(d, phi) === 1) return d;
+export function findSmallestE(phi: number): { d: number; e: number } {
+  // Find smallest valid e (public exponent), then compute d as its inverse.
+  // This matches the PDF convention where e is small and d is derived.
+  for (let e = 2; e < phi; e++) {
+    if (gcd(e, phi) === 1) {
+      const d = modInverse(e, phi);
+      if (d !== null && d > 1) return { d, e };
+    }
   }
-  return -1;
+  return { d: -1, e: -1 };
 }
 
 export function generateKeys(p: number, q: number, dInput?: number): { keys: RSAKeys; steps: SolutionStep[]; errors: string[] } {
@@ -73,14 +78,23 @@ export function generateKeys(p: number, q: number, dInput?: number): { keys: RSA
   });
 
   let d: number;
+  let e: number;
   if (dInput !== undefined && dInput > 0) {
     d = dInput;
     if (gcd(d, phi) !== 1) {
       errors.push(`d = ${d} no es coprimo con φ(n) = ${phi}. MCD(${d}, ${phi}) = ${gcd(d, phi)}`);
       return { keys: { p, q, n, phi, d, e: 0 }, steps, errors };
     }
+    const eCalc = modInverse(d, phi);
+    if (eCalc === null) {
+      errors.push(`No se pudo encontrar el inverso de d = ${d} módulo φ(n) = ${phi}`);
+      return { keys: { p, q, n, phi, d, e: 0 }, steps, errors };
+    }
+    e = eCalc;
   } else {
-    d = findSmallestD(phi);
+    const auto = findSmallestE(phi);
+    d = auto.d;
+    e = auto.e;
   }
 
   steps.push({
@@ -89,15 +103,9 @@ export function generateKeys(p: number, q: number, dInput?: number): { keys: RSA
     math: `d = ${d}, MCD(${d}, ${phi}) = ${gcd(d, phi)} = 1 ✓\nClave privada: (${n}, ${d})`,
   });
 
-  const e = modInverse(d, phi);
-  if (e === null) {
-    errors.push(`No se pudo encontrar el inverso de d = ${d} módulo φ(n) = ${phi}`);
-    return { keys: { p, q, n, phi, d, e: 0 }, steps, errors };
-  }
-
   steps.push({
     title: 'Paso 5: Calcular e (clave pública)',
-    explanation: `Resolvemos e·d ≡ 1 mod φ(n).`,
+    explanation: `Resolvemos d·e ≡ 1 mod φ(n).`,
     math: `${d}·e ≡ 1 mod ${phi}\ne = ${e}\nVerificación: ${d} × ${e} = ${d * e} ≡ ${mod(d * e, phi)} mod ${phi} ✓\nClave pública: (${n}, ${e})`,
   });
 
