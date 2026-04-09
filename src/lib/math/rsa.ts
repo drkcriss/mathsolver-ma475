@@ -138,7 +138,7 @@ export function rsaEncrypt(message: string, keys: RSAKeys, table: CharTable): RS
     }
 
     const encrypted = modPow(numeric, k.e, k.n);
-    const resultChar = table.decode[encrypted] ?? '?';
+    const resultChar = table.decode[encrypted] ?? `[${encrypted}]`;
 
     charResults.push({ char, numeric, result: encrypted, resultChar, computation: `${numeric}^${k.e} mod ${k.n} = ${encrypted}` });
     outputNumbers.push(encrypted);
@@ -178,7 +178,7 @@ export function rsaDecrypt(cipherValues: number[], keys: RSAKeys, table: CharTab
 
   for (const c of cipherValues) {
     const decrypted = modPow(c, k.d, k.n);
-    const resultChar = table.decode[decrypted] ?? '?';
+    const resultChar = table.decode[decrypted] ?? `[${decrypted}]`;
 
     charResults.push({
       char: table.decode[c] ?? String(c),
